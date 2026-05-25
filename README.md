@@ -398,15 +398,6 @@ market_data_system/
 ```
 
 ---
-
-## 🚀 17. Resume-Ready Project Highlights
-
-* **Decoupled Architecture**: Designed and implemented an event-driven system decoupling ingestion from database writes, ensuring zero dropped trades during database latency spikes.
-* **Resilient Failovers**: Built a 3-tier API ingestion failover system utilizing exponential backoffs, Jitter, and automated fallback to Geometric Brownian Motion simulation.
-* **Time-Series Aggregations**: Optimized database read operations by 95% by rolling high-frequency transaction ticks into 1-minute OHLCV candles in real time.
-* **High-Frequency Streaming**: Built a low-latency WebSocket broadcaster using an asynchronous publisher-subscriber pattern to stream real-time updates at 60 FPS.
-* **Robust Fallbacks**: Implemented automated fallback drivers (PostgreSQL to SQLite, and Redis to `asyncio.Queue`) enabling zero-configuration offline runs.
-
 ---
 
 ## 🧠 18. Key Engineering Concepts Demonstrated
