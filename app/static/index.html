@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Market Terminal</title>
+    <!-- Google Fonts Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- ApexCharts CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0a0c10 0%, #121620 100%);
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --accent-cyan: #00e5ff;
+            --accent-green: #00e676;
+            --accent-red: #ff1744;
+            --accent-orange: #ffd700;
+            --text-main: #ffffff;
+            --text-sub: #8c9bb4;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 300px;
+            background: rgba(10, 12, 16, 0.95);
+            border-right: 1px solid var(--card-border);
+            padding: 30px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            z-index: 10;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            justify-content: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .logo-icon {
+            font-size: 28px;
+        }
+
+        .logo-text {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #ffffff, var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-label {
+            font-size: 13px;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        select, button {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+        }
+
+        select:focus, select:hover {
+            border-color: var(--accent-cyan);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        select option {
+            background-color: #121620;
+            color: #ffffff;
+        }
+
+        .chart-toggle-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .toggle-btn {
+            padding: 10px;
+            font-size: 13px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-cyan);
+            color: #000000;
+            font-weight: 600;
+            border-color: var(--accent-cyan);
+        }
+
+        .status-widget {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 13px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: auto;
+        }
+
+        .status-line {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-sub);
+        }
+
+        .status-value {
+            font-weight: 600;
+        }
+
+        /* Main Workspace */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            max-width: calc(100vw - 300px);
+        }
+
+        /* Header Panel */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title h1 {
+            font-size: 36px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .header-title p {
+            color: var(--text-sub);
+            font-size: 15px;
+            margin-top: 4px;
+        }
+
+        .clock-panel {
+            text-align: right;
+        }
+
+        .clock-label {
+            font-size: 11px;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .clock-time {
+            font-size: 22px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        /* Metrics Deck */
+        .metrics-deck {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(0, 229, 255, 0.3);
+        }
+
+        .metric-label {
+            font-size: 13px;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.8px;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1.2;
+        }
+
+        .metric-sub {
+            font-size: 12px;
+            color: var(--accent-cyan);
+            margin-top: 8px;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Dashboard Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 20px;
+            flex: 1;
+            min-height: 480px;
+        }
+
+        .grid-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            position: relative;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Chart Area */
+        .chart-container {
+            flex: 1;
+            width: 100%;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Real-Time Ticker table */
+        .ticker-container {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 410px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-right: 4px;
+        }
+
+        .ticker-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            font-size: 13.5px;
+            transition: background-color 0.2s ease;
+        }
+
+        .ticker-row:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .ticker-left {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .ticker-time {
+            font-family: monospace;
+            color: var(--text-sub);
+        }
+
+        .ticker-price {
+            font-weight: 600;
+        }
+
+        .ticker-volume {
+            font-family: monospace;
+            color: var(--accent-cyan);
+            font-weight: 500;
+        }
+
+        /* Badge indicators */
+        .trend-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .trend-neutral {
+            background: rgba(144, 164, 174, 0.15);
+            color: #90a4ae;
+            border: 1px solid rgba(144, 164, 174, 0.3);
+        }
+
+        .trend-bullish {
+            background: rgba(0, 230, 118, 0.15);
+            color: #00e676;
+            border: 1px solid rgba(0, 230, 118, 0.3);
+        }
+
+        .trend-bearish {
+            background: rgba(255, 23, 68, 0.15);
+            color: #ff1744;
+            border: 1px solid rgba(255, 23, 68, 0.3);
+        }
+
+        /* Scrollbar customizing */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Selection -->
+    <div class="sidebar">
+        <div class="logo-container">
+            <span class="logo-icon">📈</span>
+            <span class="logo-text">Terminal V2</span>
+        </div>
+
+        <div class="control-group">
+            <span class="control-label">Select Trading Pair</span>
+            <select id="symbolSelect" onchange="switchSymbol(this.value)">
+                <!-- Dynamic options -->
+            </select>
+        </div>
+
+        <div class="control-group">
+            <span class="control-label">Chart Type</span>
+            <div class="chart-toggle-group">
+                <div id="btnCandle" class="toggle-btn active" onclick="setChartType('candlestick')">Candlestick</div>
+                <div id="btnLine" class="toggle-btn" onclick="setChartType('line')">Line (Close)</div>
+            </div>
+        </div>
+
+        <div class="status-widget">
+            <h4 style="font-weight:700; margin-bottom: 5px;">⚡ Connection Status</h4>
+            <div class="status-line">
+                <span>Socket status:</span>
+                <span id="socketStatus" style="color: var(--accent-red); font-weight:700;">OFFLINE</span>
+            </div>
+            <div class="status-line">
+                <span>Pipeline Mode:</span>
+                <span class="status-value" style="color: var(--accent-cyan)">Event-Driven</span>
+            </div>
+            <div class="status-line">
+                <span>Refresh:</span>
+                <span class="status-value">Direct WebSocket</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Workspace -->
+    <div class="main-content">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-title">
+                <h1 id="terminalTitle">BTC-USD Live Terminal</h1>
+                <p>Quantitative streaming analysis and volatility computation</p>
+            </div>
+            <div class="clock-panel">
+                <div class="clock-label">Local Machine Time</div>
+                <div id="clockTime" class="clock-time">00:00:00</div>
+            </div>
+        </div>
+
+        <!-- Metrics cards -->
+        <div class="metrics-deck">
+            <!-- Price Card -->
+            <div class="metric-card">
+                <div class="metric-label">Latest Price</div>
+                <div id="metricPrice" class="metric-value" style="color: var(--accent-cyan);">$0.0000</div>
+                <div class="metric-sub">
+                    <span>Volume (Tick)</span>
+                    <span id="metricVolume" style="color: #ffffff; font-family: monospace;">0.0000</span>
+                </div>
+            </div>
+
+            <!-- 24h Range -->
+            <div class="metric-card">
+                <div class="metric-label">24m High / Low</div>
+                <div id="metricHigh" class="metric-value">$0.00</div>
+                <div class="metric-sub">
+                    <span>24m Low:</span>
+                    <span id="metricLow" style="color: var(--accent-red);">0.00</span>
+                </div>
+            </div>
+
+            <!-- Volatility -->
+            <div class="metric-card">
+                <div class="metric-label">Rolling Volatility</div>
+                <div id="metricVolatility" class="metric-value" style="color: var(--accent-orange);">0.000000</div>
+                <div class="metric-sub">
+                    <span>Calculation Window</span>
+                    <span style="color: #ffffff;">5-Tick rolling</span>
+                </div>
+            </div>
+
+            <!-- Trend Indicator -->
+            <div class="metric-card">
+                <div class="metric-label">Trend Signal</div>
+                <div style="margin-top: 4px;">
+                    <span id="metricTrend" class="trend-badge trend-neutral">Neutral</span>
+                </div>
+                <div class="metric-sub">
+                    <span>Algorithm Crossover</span>
+                    <span style="color: #ffffff;">SMA(5) vs SMA(15)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid: Chart & Ticker stream -->
+        <div class="dashboard-grid">
+            <!-- Left panel: Chart -->
+            <div class="grid-panel">
+                <div class="panel-header">
+                    <div class="panel-title">📈 Real-Time Price Action</div>
+                </div>
+                <div id="apexChart" class="chart-container">
+                    <!-- Dynamic chart rendering -->
+                </div>
+            </div>
+
+            <!-- Right panel: Live Table -->
+            <div class="grid-panel">
+                <div class="panel-header">
+                    <div class="panel-title">⚡ Live Ticker Stream</div>
+                </div>
+                <div id="tickerStream" class="ticker-container">
+                    <!-- Logs stream in real time -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSymbol = 'BTC-USD';
+        let currentChartType = 'candlestick'; // candlestick or line
+        let socket = null;
+        let chart = null;
+
+        // Initialize local ticking clock
+        function startClock() {
+            const clockEl = document.getElementById("clockTime");
+            setInterval(() => {
+                const now = new Date();
+                clockEl.innerText = now.toTimeString().split(" ")[0];
+            }, 1000);
+        }
+
+        // Fetch Symbols on load
+        async function loadSymbols() {
+            try {
+                const res = await fetch("/api/v1/market/symbols");
+                const symbols = await res.json();
+                const selectEl = document.getElementById("symbolSelect");
+                selectEl.innerHTML = "";
+                symbols.forEach(sym => {
+                    const opt = document.createElement("option");
+                    opt.value = sym;
+                    opt.innerText = sym;
+                    selectEl.appendChild(opt);
+                });
+            } catch (e) {
+                console.error("Failed to load symbols:", e);
+                // Fallback options
+                const selectEl = document.getElementById("symbolSelect");
+                ["BTC-USD", "ETH-USD", "SOL-USD", "ADA-USD", "DOGE-USD"].forEach(sym => {
+                    const opt = document.createElement("option");
+                    opt.value = sym;
+                    opt.innerText = sym;
+                    selectEl.appendChild(opt);
+                });
+            }
+        }
+
+        // Setup WebSocket link
+        function connectWebSocket(symbol) {
+            if (socket) {
+                socket.close();
+            }
+
+            const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+            const wsUrl = `${wsProtocol}//${window.location.host}/api/v1/ws?symbol=${symbol}`;
+            
+            const statusEl = document.getElementById("socketStatus");
+            statusEl.innerText = "CONNECTING...";
+            statusEl.style.color = "var(--accent-orange)";
+
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = () => {
+                statusEl.innerText = "CONNECTED";
+                statusEl.style.color = "var(--accent-green)";
+            };
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleTickEvent(data);
+            };
+
+            socket.onclose = () => {
+                statusEl.innerText = "DISCONNECTED";
+                statusEl.style.color = "var(--accent-red)";
+                // Try reconnect in 3s
+                setTimeout(() => {
+                    if (currentSymbol === symbol) {
+                        connectWebSocket(symbol);
+                    }
+                }, 3000);
+            };
+
+            socket.onerror = (e) => {
+                console.error("WebSocket error:", e);
+                socket.close();
+            };
+        }
+
+        // Receive WebSocket Payload
+        function handleTickEvent(data) {
+            const tick = data.tick;
+            const metrics = data.metrics;
+
+            // 1. Update Metrics Cards
+            document.getElementById("metricPrice").innerText = `$${tick.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4})}`;
+            document.getElementById("metricVolume").innerText = tick.volume.toFixed(4);
+            document.getElementById("metricVolatility").innerText = metrics.volatility_5m.toFixed(6);
+
+            // High/Low updates (realtime dynamic check)
+            const lowEl = document.getElementById("metricLow");
+            const highEl = document.getElementById("metricHigh");
+            
+            // Stats updates from stats endpoint
+            fetch(`/api/v1/market/stats?symbol=${currentSymbol}`)
+                .then(r => r.json())
+                .then(stats => {
+                    highEl.innerText = `$${stats.high_24h.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                    lowEl.innerText = `$${stats.low_24h.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                })
+                .catch(() => {});
+
+            // Update Trend Badge
+            const trendEl = document.getElementById("metricTrend");
+            trendEl.innerText = metrics.trend_signal;
+            trendEl.className = "trend-badge"; // clear previous classes
+            if (metrics.trend_signal === "BULLISH") {
+                trendEl.classList.add("trend-bullish");
+            } else if (metrics.trend_signal === "BEARISH") {
+                trendEl.classList.add("trend-bearish");
+            } else {
+                trendEl.classList.add("trend-neutral");
+            }
+
+            // 2. Prepend Ticker Row log
+            const tickerStream = document.getElementById("tickerStream");
+            
+            const row = document.createElement("div");
+            row.className = "ticker-row";
+            
+            const timestamp = new Date(tick.timestamp);
+            const tsString = timestamp.toTimeString().split(" ")[0];
+
+            row.innerHTML = `
+                <div class="ticker-left">
+                    <span class="ticker-time">[${tsString}]</span>
+                    <span class="ticker-price">$${tick.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4})}</span>
+                </div>
+                <div class="ticker-volume">${tick.volume.toFixed(3)}</div>
+            `;
+            
+            tickerStream.insertBefore(row, tickerStream.firstChild);
+            
+            // Limit ticker elements in DOM to keep memory clean
+            if (tickerStream.children.length > 30) {
+                tickerStream.removeChild(tickerStream.lastChild);
+            }
+
+            // 3. Append to chart
+            updateChartWithNewTick(tick);
+        }
+
+        // Initialize and fetch ApexCharts candles
+        async function initChart(symbol) {
+            try {
+                const res = await fetch(`/api/v1/market/candles?symbol=${symbol}&limit=40`);
+                const candles = await res.json();
+                
+                const seriesData = candles.map(c => ({
+                    x: new Date(c.start_time).getTime(),
+                    y: currentChartType === 'candlestick' 
+                        ? [c.open, c.high, c.low, c.close]
+                        : c.close
+                }));
+
+                const options = {
+                    series: [{
+                        name: 'Market Price',
+                        data: seriesData
+                    }],
+                    chart: {
+                        type: currentChartType,
+                        height: '100%',
+                        toolbar: { show: false },
+                        background: 'transparent',
+                        foreColor: '#8c9bb4',
+                        animations: {
+                            enabled: true,
+                            easing: 'easeinout',
+                            speed: 300,
+                            dynamicAnimation: {
+                                enabled: true,
+                                speed: 200
+                            }
+                        }
+                    },
+                    theme: {
+                        mode: 'dark'
+                    },
+                    stroke: {
+                        curve: 'smooth',
+                        width: currentChartType === 'line' ? 5 : 1
+                    },
+                    xaxis: {
+                        type: 'datetime',
+                        labels: {
+                            datetimeUTC: false
+                        }
+                    },
+                    yaxis: {
+                        tooltip: { enabled: true }
+                    },
+                    grid: {
+                        borderColor: 'rgba(255,255,255,0.05)'
+                    }
+                };
+
+                // Dynamic options configuration to prevent 'undefined' property merging crashes
+                if (currentChartType === 'line') {
+                    options.colors = ['#ffff00'];
+                } else {
+                    options.plotOptions = {
+                        candlestick: {
+                            colors: {
+                                upward: '#00e676',
+                                downward: '#ff1744'
+                            }
+                        }
+                    };
+                }
+
+                const chartContainer = document.getElementById("apexChart");
+                chartContainer.innerHTML = "";
+                
+                chart = new ApexCharts(chartContainer, options);
+                await chart.render();
+            } catch (e) {
+                console.error("Failed to load historical candles:", e);
+            }
+        }
+
+        // Live update chart points
+        function updateChartWithNewTick(tick) {
+            if (!chart) return;
+
+            const tickTime = new Date(tick.timestamp).getTime();
+            const series = chart.w.config.series[0].data;
+
+            if (series.length === 0) return;
+
+            const lastPoint = series[series.length - 1];
+            const minuteBoundary = 60 * 1000;
+            
+            // Check if tick belongs to the last candle minute bucket or creates a new one
+            if (tickTime - lastPoint.x < minuteBoundary) {
+                // Update active candle (same minute)
+                if (currentChartType === 'candlestick') {
+                    const currentOHLC = lastPoint.y;
+                    currentOHLC[1] = Math.max(currentOHLC[1], tick.price); // High
+                    currentOHLC[2] = Math.min(currentOHLC[2], tick.price); // Low
+                    currentOHLC[3] = tick.price; // Close
+                    lastPoint.y = currentOHLC;
+                } else {
+                    lastPoint.y = tick.price;
+                }
+            } else {
+                // Shift or append new candle (new minute)
+                const newPoint = {
+                    x: tickTime,
+                    y: currentChartType === 'candlestick'
+                        ? [tick.price, tick.price, tick.price, tick.price]
+                        : tick.price
+                };
+                series.push(newPoint);
+                if (series.length > 50) {
+                    series.shift();
+                }
+            }
+
+            chart.updateSeries([{ data: series }], true);
+        }
+
+        // Switch active symbol
+        async function switchSymbol(symbol) {
+            currentSymbol = symbol;
+            document.getElementById("terminalTitle").innerText = `${symbol} Live Terminal`;
+            document.getElementById("tickerStream").innerHTML = ""; // reset log
+            
+            // Connect to new symbol WebSockets
+            connectWebSocket(symbol);
+            // Re-render chart history
+            await initChart(symbol);
+        }
+
+        // Adjust chart type
+        async function setChartType(type) {
+            if (currentChartType === type) return;
+            currentChartType = type;
+
+            document.getElementById("btnCandle").classList.toggle("active", type === 'candlestick');
+            document.getElementById("btnLine").classList.toggle("active", type === 'line');
+
+            // Re-init chart with new type parameters
+            await initChart(currentSymbol);
+        }
+
+        // Entrypoint
+        window.addEventListener("DOMContentLoaded", async () => {
+            startClock();
+            await loadSymbols();
+            // Connect default symbol
+            switchSymbol(currentSymbol);
+        });
+    </script>
+</body>
+</html>
